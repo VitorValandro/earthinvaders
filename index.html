@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+	Protótipo de jogo em canvas e javascript: Earth Invaders
+	Vitor Matheus Valandro da Rosa
+	2019
+-->
+<head>
+   <title>Earth Invaders</title>
+   <script src="animacao.js"></script>
+   <script src="teclado.js"></script>
+   <script src="colisor.js"></script>
+   <script src="fundo.js"></script>
+   <script src="nave.js"></script>
+   <script src="ovni.js"></script>
+   <script src="tiro.js"></script>
+   <script src="spritesheet.js"></script>
+   <script src="explosao.js"></script>
+   <script src="painel.js"></script>
+   <link href="font/stylesheet.css" rel="stylesheet" type="text/css"/>
+</head>
+
+<body>
+   <canvas id="tela_jogo" width="500" height="500"></canvas>
+   
+   <a id="link_jogar" href="javascript: iniciarJogo()">Jogar</a>
+   
+   <p id='controls'>
+      Arrows: Moviment <br>
+      Spacebar: Shoot <br>
+      Enter: pause
+   </p>
+   <p id='objective'>
+      Objective: UFOs have invaded the solar system. It's up to you to defend him by destroying all enemy units. 
+   </p>
+   <!-- <a href="" id="twitter-share-btt" rel="nofollow" target="_blank" class="twitter-share-button">Share</a>
+   <script>
+       //Constrói a URL depois que o DOM estiver pronto
+
+        document.addEventListener("DOMContentLoaded", function() {
+
+            var url = encodeURIComponent(window.location.href);
+
+            var titulo = encodeURIComponent(document.title);
+
+            //var via = encodeURIComponent("usuario-twitter"); //nome de usuário do twitter do seu site
+
+            //altera a URL do botão
+
+            document.getElementById("twitter-share-btt").href = "https://twitter.com/intent/tweet?url="+url+"&text="+titulo;
+
+            
+
+            //se for usar o atributo via, utilize a seguinte url
+
+            //document.getElementById("twitter-share-btt").href = "https://twitter.com/intent/tweet?url="+url+"&text="+titulo+"&via="+via;
+
+        }, false);
+   </script> -->
+   <script>
+      // Canvas e Context
+      var canvas = document.getElementById('tela_jogo');
+      var context = canvas.getContext('2d');
+
+      // Variáveis principais
+      var imagens, animacao, teclado, colisor, nave, criadorInimigos;
+      var totalImagens = 0, carregadas = 0;
+      var musicaAcao;
+      
+      // Começa carregando as imagens e músicas
+      carregarImagens();
+      carregarMusicas();
+      
+      function carregarImagens() {
+         // Objeto contendo os nomes das imagens
+         imagens = {
+            espaco:   'fundo.jpg', 
+            estrelas: 'stars.png', 
+            nave:     'nave.png', 
+            ovni:     'ovni.png',
+            explosao: 'explosao.png',
+            loading: 'loading.jpg',
+            pause: 'pause.png',
+            over: 'vamovesedeucerto.gif',
+            planetas: 'fundo-planetas.png'
+         };
+         
+         // Carregar todas
+         for (var i in imagens) {
+            var img = new Image();
+            img.src = 'img/' + imagens[i];
+            img.onload = carregando;
+            totalImagens++;
+            
+            // Substituir o nome pela imagem
+            imagens[i] = img;
+         }
+      }
+      
+      function carregando() {
+         context.save();
+         
+         // Fundo 
+         context.drawImage(imagens.loading, 0, 0, canvas.width,
+                           canvas.height);
+         
+         // Barra de loading
+         carregadas++;
+         var tamanhoTotal = 300;
+         var tamanho = carregadas / totalImagens * tamanhoTotal;
+         context.lineWidth = 2.5;
+         context.strokeStyle = 'black';
+         context.strokeRect(90, 190, tamanhoTotal+20, 70);
+         context.fillStyle = 'white';
+         context.fillRect(100, 200, tamanho, 50);
+         
+         context.restore();         
+         
+         if (carregadas == totalImagens) {
+            iniciarObjetos();
+            mostrarLinkJogar();
+         }
+      }
+      
+      function iniciarObjetos() {
+         // Objetos principais
+         animacao = new Animacao(context);
+         teclado = new Teclado(document);
+         colisor = new Colisor();
+         espaco = new Fundo(context, imagens.espaco);
+         planetas = new Fundo(context, imagens.planetas);
+         estrelas = new Fundo(context, imagens.estrelas);
+         nave = new Nave(context, teclado, imagens.nave, 
+                         imagens.explosao);
+         painel = new Painel(context, nave);
+         
+         // Ligações entre objetos
+         animacao.novoSprite(espaco);
+         animacao.novoSprite(planetas);
+         animacao.novoSprite(estrelas);
+         animacao.novoSprite(painel);
+         animacao.novoSprite(nave);
+         
+         colisor.novoSprite(nave);
+         animacao.novoProcessamento(colisor);
+         
+         configuracoesIniciais();
+      }
+      
+      function configuracoesIniciais() {
+         // Fundos
+         espaco.velocidade = 60;
+         planetas.velocidade = 20;
+         estrelas.velocidade = 150;
+         
+         // Nave
+         nave.posicionar();
+         nave.velocidade = 200;
+         
+         // Inimigos
+         criacaoInimigos();
+         
+         // Game Over
+         nave.acabaramVidas = function() {
+            animacao.desligar();
+            gameOver();
+         }
+         
+         // Pontuação
+         colisor.aoColidir = function(o1, o2) {
+            // Tiro com Ovni
+            if ( (o1 instanceof Tiro && o2 instanceof Ovni) ||
+                 (o1 instanceof Ovni && o2 instanceof Tiro) )
+               painel.pontuacao += 10;
+         }
+      }
+      
+      function criacaoInimigos() {
+         criadorInimigos = {
+            ultimoOvni: new Date().getTime(),
+            
+            processar: function() {
+               var agora = new Date().getTime();
+               var decorrido = agora - this.ultimoOvni;
+               
+               if (decorrido > 1000) {
+                  novoOvni();
+                  this.ultimoOvni = agora;
+               }
+            }
+         };
+         
+         animacao.novoProcessamento(criadorInimigos);
+      }
+      
+      function novoOvni() {
+         var imgOvni = imagens.ovni;
+         var ovni = new Ovni(context, imgOvni, imagens.explosao);
+
+         // Mínimo: 500; máximo: 1000
+         ovni.velocidade = 
+            Math.floor( 500 + Math.random() * (1000 - 500 + 1) );
+         
+         // Mínimo: 0; máximo: largura do canvas - largura do ovni   
+         ovni.x = 
+            Math.floor(Math.random() * 
+                       (canvas.width - imgOvni.width + 1) );
+                  
+         // Descontar a altura
+         ovni.y = -imgOvni.height;
+         
+         animacao.novoSprite(ovni);
+         colisor.novoSprite(ovni);
+      }
+      
+      function pausarJogo() {
+         if (animacao.ligado) {
+            animacao.desligar();
+            ativarTiro(false);
+            context.save();
+           context.drawImage(imagens.pause, 0, 0, canvas.width,
+                           canvas.height);
+            context.restore();
+         }
+         else {
+            criadorInimigos.ultimoOvni = new Date().getTime();
+            animacao.ligar();
+            ativarTiro(true);
+         }
+      }
+      
+      function ativarTiro(ativar) {
+         if (ativar) {
+            teclado.disparou(ESPACO, function() {
+               nave.atirar();
+            });
+         }
+         else
+            teclado.disparou(ESPACO, null);
+      }
+      
+      function carregarMusicas() {
+         musicaAcao = new Audio();
+         musicaAcao.src = 'snd/musica-acao.mp3';
+         musicaAcao.load();
+         musicaAcao.volume = 0.5;
+         musicaAcao.loop = true;
+      }
+      
+      function mostrarLinkJogar() {
+         document.getElementById('link_jogar').style.display =
+            'block';
+      }
+      
+      function iniciarJogo() {
+         criadorInimigos.ultimoOvni = new Date().getTime();
+         
+         // Tiro
+         ativarTiro(true);
+         
+         // Pausa
+         teclado.disparou(ENTER, pausarJogo);
+         
+         document.getElementById('link_jogar').style.display ='none';
+         painel.pontuacao = 0;
+         musicaAcao.play();
+         animacao.ligar();
+      }
+      
+      function gameOver() {
+         // Tiro
+         ativarTiro(false);
+         
+         // Pausa
+         teclado.disparou(ENTER, null);
+         
+         // Parar a música e rebobinar
+         musicaAcao.pause();
+         musicaAcao.currentTime = 0.0;
+         
+         // Fundo
+         requestAnimationFrame(fundo_over);
+         function fundo_over() {
+            context.clearRect(0,0,canvas.width,canvas.height)
+            context.drawImage(imagens.over, 0, 0, 500, 500);
+            requestAnimationFrame(fundo_over);
+      }
+         
+         
+         // Volta o link "Jogar"
+         mostrarLinkJogar();
+         
+         // Restaurar as condições da nave
+         nave.vidasExtras = 3;
+         nave.posicionar();
+         animacao.novoSprite(nave);
+         colisor.novoSprite(nave);
+         
+         // Tirar todos os inimigos da tela
+         removerInimigos();
+         
+      }
+      
+      function removerInimigos() {
+         for (var i in animacao.sprites) {
+            if (animacao.sprites[i] instanceof Ovni)
+               animacao.excluirSprite(animacao.sprites[i]);
+         }
+      }
+      
+   </script>
+</body>
+
+</html>
