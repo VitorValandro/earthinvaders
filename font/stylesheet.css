@@ -1,0 +1,88 @@
+@font-face {
+    font-family: '8bit_wondernominal';
+    src: url('8-bit_wonder-webfont.woff2') format('woff2'),
+         url('8-bit_wonder-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+body{
+	font-family:'8bit_wondernominal';
+	background: #100a1c;
+  	background-image:
+    radial-gradient(50% 30% ellipse at center top, #201e40 0%, rgba(0,0,0,0) 100%),
+    radial-gradient(60% 50% ellipse at center bottom, #261226 0%, #100a1c 100%);
+  	background-attachment: fixed;
+  	color: #6cacc5;
+}
+#tela_jogo {
+	padding-left: 0;
+    padding-right: 0;
+    margin-left: auto; margin-right: auto;
+    margin-top: 70px;
+    display: block;
+    border-bottom-left-radius: 20px;
+	border-top-right-radius:20px;
+    border: 8px solid #000;
+}
+#objective {
+	border-bottom-left-radius: 20px;
+	border-top-right-radius:20px;
+	color: white;
+	font-size: 15px;
+	text-shadow: 2px 2px 4px #000000;
+	padding-left: 10px; padding-right: 10px;
+	padding-top: 20px; padding-bottom: 20px;
+	border: 5px solid #261226;
+	position: absolute;
+	left: 180px;
+	top: 150px;
+	width: 180px;
+}
+#controls {
+	border-bottom-left-radius: 20px;
+	border-top-right-radius:20px;
+	color: white;
+	text-shadow: 2px 2px 4px #000000;
+	padding: 20px;
+	border: 5px solid #261226;
+	position: absolute;
+	left: 1000px;
+	top: 150px;
+}
+#link_jogar {
+/* Inicia oculto */
+display: block;
+border: 2px solid #000;
+/* Cores e fundo */
+color: white;
+background-image: radial-gradient(circle, #3f3f3f, #2c2c2c);
+ 
+/* Fonte */
+font-size: 15px;
+font-family: '8bit_wondernominal';
+
+/* Sem sublinhado e com sombra */
+text-decoration: none;
+text-shadow: 5px 5px 10px black;
+text-align: center;
+ 
+/* Posicionamento */
+position: absolute;
+left: 630px;
+top: 370px;
+
+/* A imagem do botão é 72x72, descontamos os paddings */
+width: 80px;
+height:25px;
+padding-top: 10px; padding-right: 10px; padding-left: 10px; padding-bottom: 5px;
+}
+#postar_pontuacao {
+/* Ocultar o link */
+display: none;
+
+/* Visual a gosto! */
+color: yellow;         
+position: absolute;
+left: 180px;
+top: 410px;
+}      
